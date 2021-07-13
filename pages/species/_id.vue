@@ -3,7 +3,7 @@
     <v-row>
       <v-col class="d-flex flex-column">
         <v-card class="flex d-flex flex-column justify-between">
-          <Hero :src="`/img/species/${item.image}`">
+          <Hero v-if="item.image" :src="`/img/species/${item.image}`">
             <template #item>
               <v-container
                 v-if="$vuetify.breakpoint.lgAndUp"
@@ -14,12 +14,7 @@
                     <v-card style="background: rgba(0, 0, 0, 0.3)">
                       <v-card-title>
                         <h1 class="text-break text-wrap">
-                          {{ startCase(item.species.split('(')[0].trim()) }} ({{
-                            item.species
-                              .split('(')[1]
-                              .replace(/\)+$/, '')
-                              .trim()
-                          }})
+                          {{ commonName }} ({{ botanicalName }})
                         </h1>
                       </v-card-title>
                       <!-- <v-card-text class="caption text-no-wrap">
@@ -34,10 +29,10 @@
 
           <div v-if="$vuetify.breakpoint.mdAndDown">
             <v-card-title>
-              {{ startCase(item.species.split('(')[0].trim()) }}
+              {{ commonName }}
             </v-card-title>
             <v-card-subtitle class="pb-0 font-italic">{{
-              item.species.split('(')[1].replace(/\)+$/, '').trim()
+              botanicalName
             }}</v-card-subtitle>
           </div>
 
@@ -113,10 +108,7 @@
 
                 <v-card-subtitle class="pb-0">Flower Colour</v-card-subtitle>
                 <v-card-text class="text--primary">
-                  <span
-                    v-for="color in waterwise['Flower colour'].split(' and ')"
-                    :key="color"
-                  >
+                  <span v-for="color in flowerColor" :key="color">
                     <!-- <span style="display: inline-flex; align-self: bottom;">
                       <svg
                         style="
@@ -139,10 +131,7 @@
 
                 <v-card-subtitle class="pb-0">Foliage Colour</v-card-subtitle>
                 <v-card-text class="text--primary">
-                  <span
-                    v-for="color in waterwise['Foliage Colour'].split(' and ')"
-                    :key="color"
-                  >
+                  <span v-for="color in foliageColor" :key="color">
                     <!-- <span style="display: inline-flex; align-self: bottom;">
                       <svg
                         style="
@@ -168,11 +157,7 @@
                     Climate Zones
                   </v-card-subtitle>
                   <v-card-text>
-                    <v-chip
-                      v-for="i in waterwise['Climate Zones'].split(',').sort()"
-                      :key="i"
-                      readonly
-                    >
+                    <v-chip v-for="i in climateZones" :key="i" readonly>
                       {{ startCase(i) }}
                     </v-chip>
                   </v-card-text>
@@ -181,11 +166,7 @@
                 <template v-if="waterwise['Soil Type']">
                   <v-card-subtitle class="pb-0"> Soil Type </v-card-subtitle>
                   <v-card-text>
-                    <v-chip
-                      v-for="i in waterwise['Soil Type'].split(',').sort()"
-                      :key="i"
-                      readonly
-                    >
+                    <v-chip v-for="i in soilType" :key="i" readonly>
                       {{ startCase(i) }}
                     </v-chip>
                   </v-card-text>
@@ -213,11 +194,7 @@
                 <template v-if="item.attracts">
                   <v-card-subtitle class="pb-0"> Attracts </v-card-subtitle>
                   <v-card-text>
-                    <v-chip
-                      v-for="attract in item.attracts.split(',').sort()"
-                      :key="attract"
-                      readonly
-                    >
+                    <v-chip v-for="attract in attracts" :key="attract" readonly>
                       {{ startCase(attract) }}
                     </v-chip>
                   </v-card-text>
@@ -248,44 +225,48 @@
 import { mdiArrowRight } from '@mdi/js'
 import { startCase } from 'lodash-es'
 export default {
-  async asyncData(context) {
-    try {
-      const id = context.route.params.id
-      const result = await context.$content('species').fetch()
-      const { body } = result
-      const item = body.find((item) => item.species === id) ?? {}
-
-      const { body: waterwiseBody = [] } = await context
-        .$content('waterwise-plants')
-        .fetch()
-      const waterwise = waterwiseBody.find((i) => {
-        const commonName = startCase(item.species.split('(')[0].trim())
-        const botanicalName = item.species
-          .split('(')[1]
-          .replace(/seasonal$/, '')
-          .replace(/-/, '')
-          .trim()
-          .replace(/\)+$/, '')
-          .trim()
-        return (
-          i['Common Name'] === commonName ||
-          i['Botanical Name'] === botanicalName ||
-          i['Previous Name'] === botanicalName ||
-          i['Botanical Name'].startsWith(
-            botanicalName.replace(/sp\.$/, '').trim()
-          )
-        )
-      })
-      return { item, waterwise }
-    } catch {
-      context.error({ statusCode: 404 })
-    }
-  },
   data: () => ({
     item: {},
     waterwise: {},
     mdiArrowRight,
   }),
+  async fetch() {
+    const id = this.$route.params.id
+    const result = await this.$content('species').fetch()
+    const { body } = result
+    const item = body.find((item) => item.species === id) ?? {}
+
+    const { body: waterwiseBody = [] } = await this.$content(
+      'waterwise-plants'
+    ).fetch()
+    const waterwise = waterwiseBody.find((i) => {
+      const commonName = startCase(item.species.split('(')[0].trim())
+      const botanicalName = item.species
+        .split('(')[1]
+        .replace(/seasonal$/, '')
+        .replace(/-/, '')
+        .trim()
+        .replace(/\)+$/, '')
+        .trim()
+      return (
+        i['Common Name'] === commonName ||
+        i['Botanical Name'] === botanicalName ||
+        i['Previous Name'] === botanicalName ||
+        i['Botanical Name'].startsWith(
+          botanicalName.replace(/sp\.$/, '').trim()
+        )
+      )
+    })
+    if (!item && !item.length) {
+      if (process.server) {
+        this.$nuxt.context.res.statusCode = 404
+      } else {
+        this.$nuxt.error({ statusCode: 404 })
+      }
+    }
+    this.item = item
+    this.waterwise = waterwise
+  },
   head() {
     return {
       title: this.item.species,
@@ -299,15 +280,60 @@ export default {
     }
   },
   computed: {
+    attracts() {
+      const separator = ','
+      const data = this.item.attracts
+      return this.split(data, separator).sort()
+    },
+    soilType() {
+      const separator = ','
+      const data = this.waterwise['Soil Type']
+      return this.split(data, separator).sort()
+    },
+    climateZones() {
+      const separator = ','
+      const data = this.waterwise['Climate Zones']
+      return this.split(data, separator).sort()
+    },
+    foliageColor() {
+      const separator = ' and '
+      const data = this.waterwise['Foliage Colour']
+      return this.split(data, separator).sort()
+    },
+    flowerColor() {
+      const separator = ' and '
+      const data = this.waterwise['Flower colour']
+      return this.split(data, separator).sort()
+    },
     commonName() {
-      return startCase(this.item.species.split('(')[0].trim())
+      const separator = '('
+      const text = this.item.species
+      const splits = this.split(text, separator)
+      if (splits && splits.length) {
+        const split = splits[0]
+        return startCase(split.trim())
+      }
+      return null
     },
     botanicalName() {
-      return this.item.species.split('(')[1].replace(/\)+$/, '').trim()
+      const separator = '('
+      const text = this.item.species
+      const splits = this.split(text, separator)
+      if (splits && splits.length) {
+        const split = splits[1]
+        return split.replace(/\)+$/, '').trim()
+      }
+      return null
     },
   },
   methods: {
     startCase,
+    split(text, separator = ',') {
+      if (text) {
+        return text.split(separator)
+      }
+      return []
+    },
   },
 }
 </script>
