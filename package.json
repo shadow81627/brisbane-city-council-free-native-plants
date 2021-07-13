@@ -40,7 +40,7 @@
     "github-markdown-css": "4.0.0",
     "lodash-es": "4.17.21",
     "mapbox-gl": "2.3.1",
-    "nuxt": "2.15.6",
+    "nuxt": "2.15.7",
     "store": "2.0.12",
     "vue-warehouse": "2.2.0"
   },
@@ -48,7 +48,7 @@
     "@lhci/cli": "0.6.1",
     "@mdi/js": "5.9.55",
     "@nuxt/image": "0.5.0",
-    "@nuxt/types": "2.15.6",
+    "@nuxt/types": "2.15.7",
     "@nuxt/typescript-build": "2.1.0",
     "@nuxtjs/eslint-config": "6.0.1",
     "@nuxtjs/eslint-config-typescript": "6.0.1",
